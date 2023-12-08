@@ -17,7 +17,7 @@ def init():
     # Khởi tạo model
     from pickle import load
 
-    model = load(open("fall_detection\models\model.pkl", "rb"))
+    model = load(open("fall_detection\model\model.pkl", "rb"))
 
     return cap, video_writer, csv_writer, model, folder_name
 
