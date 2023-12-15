@@ -1,59 +1,36 @@
+from cv2 import VideoCapture, VideoWriter
+import os
+import datetime
+import csv
+
+
 def init():
     # Khởi tạo Webcam
-    cap = capture()
+    cap = VideoCapture(0)
 
     # Khởi tạo folder_name
-    import os
-
     folder_name = name_folder("fall_detection/video/vid_")  # Tên thư mục
     os.makedirs(folder_name)  # Tạo thư mục
 
     # Khởi tạo video_writer
     video_writer = init_writer(cap, folder_name)
 
-    # Khởi tạo csv_writer
-    csv_writer = init_csv(folder_name + "/data.csv")
-
-    # Khởi tạo model
-    from pickle import load
-
-    model = load(open("fall_detection\model\model.pkl", "rb"))
-
-    return cap, video_writer, csv_writer, model, folder_name
+    return cap, video_writer
 
 
 # Hàm lấy thời gian hiện tại
 def name_folder(name):
-    import datetime
-
     return name + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
 # Hàm khởi tạo video_writer
 def init_writer(cap, folder_name):
-    from cv2 import (
-        CAP_PROP_FOURCC,
-        CAP_PROP_FPS,
-        CAP_PROP_FRAME_WIDTH,
-        CAP_PROP_FRAME_HEIGHT,
-        VideoWriter,
-    )
-
-    video_name = f"{folder_name}/video.mp4"  # Tên video
-    fourcc = int(cap.get(CAP_PROP_FOURCC))  # Lấy codec của video
-    fps = cap.get(CAP_PROP_FPS)  # Lấy số frame trên giây của video
-    size = (
-        int(cap.get(CAP_PROP_FRAME_WIDTH)),
-        int(cap.get(CAP_PROP_FRAME_HEIGHT)),
-    )  # Lấy kích thước của video
-
-    return VideoWriter(video_name, fourcc, fps, size)
+    video_name = f"{folder_name}/video.mp4"
+    return VideoWriter(video_name, 0x7634706D, 30, (640, 480))
 
 
 # Hàm khởi tạo file csv
 def init_csv(file_name):
-    import csv
-
     csv_file = open(file_name, "w", newline="")  # Tạo file csv
     csv_writer = csv.writer(csv_file)  # Khởi tạo csv_writer
     csv_writer.writerow(
@@ -73,13 +50,3 @@ def init_csv(file_name):
         ]
     )  # Viết tiêu đề cho file csv
     return csv_writer
-
-
-# Hàm khởi tạo webcam
-def capture():
-    from cv2 import VideoCapture
-
-    return VideoCapture(0)
-
-
-from cv2 import destroyAllWindows, imshow, waitKey, VideoCapture

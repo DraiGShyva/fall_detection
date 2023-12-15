@@ -1,38 +1,18 @@
-def predict(folder_name, model):
-    import pandas as pd
+import threading
+from pickle import load
+import pandas as pd
+from module.init import init
+from cv2 import imshow, waitKey
+from module.pose_landmarker import extract_pose_features, draw
 
-    # Đọc dữ liệu từ file csv
-    try:
-        df = pd.read_csv(folder_name + "/data.csv")
-    except pd.errors.EmptyDataError:
-        df = pd.DataFrame()
-
-    # Nếu dữ liệu lớn hơn 28 dòng
-    if len(df) > 28:
-        # Lấy 28 dòng cuối cùng và chuyển thành mảng 1 chiều
-        data_list = [[j for i in df.tail(28).values for j in i]]
-
-        # Dự đoán kết quả mỗi 8 frame
-        result = model.predict(data_list)
-
-        # Nếu kết quả là 1 thì hiển thị cảnh báo
-        if result == 1:
-            print("Fall Detected")
+flag = False
+count = 0
+df = []
+data_list = []
 
 
-def main():
-    from module.pose_landmarker import extract_pose_features, draw
-    from module.init import (
-        imshow,
-        waitKey,
-        destroyAllWindows,
-        init,
-    )
-
-    cap, video, csv, model, folder_name = init()
-
-    # Vòng lặp chính
-    counter = 0
+def feature_extraction(cap, video):
+    global flag, df, count, data_list
 
     while True:
         # Đọc frame từ webcam
@@ -41,21 +21,32 @@ def main():
         # Trích xuất các điểm mốc
         landmarks = extract_pose_features(frame)
 
-        list = []
+        list = [0] * 12
 
         # Nếu có điểm mốc thì vẽ các điểm mốc
         if landmarks is not None:
-            frame = draw(frame.copy(), landmarks)
+            frame = draw(frame, landmarks)
 
             # chuyển landmarks thành mảng 1 chiều
             list = [j for i in landmarks for j in i]
 
-        # Ghi dữ liệu xuống file csv
-        csv.writerow(list)
+        # Thêm dữ liệu vào df
+        df.append(list)
 
-        if counter == 10:
-            predict(folder_name, model)
-            counter = 0
+        # Bản sao của df (bỏ qua count * 15 dòng đầu tiên)
+        df_cp = df[count * 15 :]
+
+        # try:
+        #     print(count, len(df_cp), len(data_list))
+        # except IndexError:
+        #     pass
+
+        if len(df_cp) > 28:
+            # Lấy mỗi 28 dòng dữ liệu đầu tiên và thêm vào data_list
+            data_list.append([j for i in df_cp[:28] for j in i])  # type: ignore
+
+            # Tăng biến đếm lên 1
+            count += 1
 
         # Hiển thị kết quả
         imshow("Pose Detection", frame)
@@ -63,13 +54,57 @@ def main():
         # Ghi frame xuống video
         video.write(frame)
 
-        # Nhấn phím ESC để thoát
-        if waitKey(1) & 0xFF == 27:
-            cap.release()
-            video.release()
-            destroyAllWindows()
+        # Nếu nhấn phím Esc thì dừng chương trình
+        if waitKey(1) == 27:
+            flag = True
+            # Lưu dữ liệu vào file csv
+            df = pd.DataFrame(df)
+            df.to_csv("data.csv", index=False)
+            break
 
-        counter += 1
+
+def predict():
+    global flag, data_list
+    # Khởi tạo model
+    model = load(open("fall_detection/model/model.pkl", "rb"))
+    count_2 = 0
+    while flag is False:
+        if count - count_2 * 5 == 5:
+            print("Predicting...")
+            count_2 += 1
+
+            # Tạo bản sao của data_list chỉ lấy 5 dòng cuối cùng
+            data_list_cp = pd.DataFrame(data_list[-5:])
+
+            # Dự đoán
+            result = model.predict(data_list_cp)
+
+            # Nếu có 1 trong các dự đoán là ngã thì thông báo
+            if 1 in result:
+                print("Fall detected")
+
+
+def main():
+    cap, video = init()
+
+    # Tạo thread để trích xuất đặc trưng
+    feature = threading.Thread(target=feature_extraction, args=(cap, video))
+
+    # Tạo thread để dự đoán
+    pred = threading.Thread(target=predict)
+
+    # Chạy 2 thread
+    feature.start()
+    pred.start()
+
+    # Chờ thread kết thúc
+    feature.join()
+
+    # Đóng webcam và video
+    cap.release()
+    video.release()
+
+    print("Program stopped")
 
 
 if __name__ == "__main__":

@@ -1,13 +1,13 @@
-from cv2 import circle, COLOR_BGR2RGB, cvtColor, line
+from cv2 import COLOR_BGR2RGB, cvtColor, circle
 from mediapipe.python.solutions.pose import Pose
 
+# tạo đối tượng Pose
 mp_pose = Pose(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5,
     model_complexity=1,
     static_image_mode=False,
 )
-
 # tạo list các điểm mốc cần thiết
 n_landmarks = [[11, 12], [23, 24], 27, 28]
 
