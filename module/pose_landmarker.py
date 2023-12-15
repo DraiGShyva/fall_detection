@@ -1,4 +1,4 @@
-from cv2 import COLOR_BGR2RGB, cvtColor, circle
+from cv2 import cvtColor, circle
 from mediapipe.python.solutions.pose import Pose
 
 # tạo đối tượng Pose
@@ -15,14 +15,21 @@ n_landmarks = [[11, 12], [23, 24], 27, 28]
 # Hàm trích xuất đặc trưng từ ảnh
 def extract_pose_features(frame):
     # chuyển ảnh sang RGB
-    frame_rgb = cvtColor(frame, COLOR_BGR2RGB)
+    frame_rgb = cvtColor(frame, 4)
 
     # xử lý ảnh
     results = mp_pose.process(frame_rgb).pose_landmarks  # type: ignore
 
-    # nếu không có kết quả thì trả về None
+    # nếu không có kết quả thì trả về landmarks với tất cả các tọa độ bằng 0
     if results is None:
-        return None
+        return [[0, 0, 0] for _ in range(len(n_landmarks))]
+
+    # nếu điểm nào không nhận diện được thì gán tọa độ (0, 0, 0)
+    for i in range(len(results.landmark)):
+        if results.landmark[i].visibility < 0:
+            results.landmark[i].x = 0
+            results.landmark[i].y = 0
+            results.landmark[i].z = 0
 
     # nếu có kết quả thì trích xuất tọa độ các điểm mốc theo tên và lưu vào list
     landmarks = []

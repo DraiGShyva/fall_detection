@@ -26,7 +26,12 @@ def name_folder(name):
 # Hàm khởi tạo video_writer
 def init_writer(cap, folder_name):
     video_name = f"{folder_name}/video.mp4"
-    return VideoWriter(video_name, 0x7634706D, 30, (640, 480))
+    return VideoWriter(
+        video_name,
+        0x7634706D,
+        cap.get(5),
+        (int(cap.get(3)), int(cap.get(4))),
+    )
 
 
 # Hàm khởi tạo file csv
