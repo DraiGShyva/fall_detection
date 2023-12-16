@@ -1,4 +1,4 @@
-from cv2 import cvtColor, circle
+from cv2 import cvtColor, circle, line
 from mediapipe.python.solutions.pose import Pose
 
 # tạo đối tượng Pose
@@ -9,7 +9,21 @@ mp_pose = Pose(
     static_image_mode=False,
 )
 # tạo list các điểm mốc cần thiết
-n_landmarks = [[11, 12], [23, 24], 27, 28]
+n_landmarks = [0, [11, 12], 13, 14, 15, 16, [23, 24], 25, 26, 27, 28]
+
+# tạo list các điểm cần nối
+connections = [
+    [0, 1],
+    [1, 2],
+    [1, 3],
+    [2, 4],
+    [3, 5],
+    [1, 6],
+    [6, 7],
+    [6, 8],
+    [7, 9],
+    [8, 10],
+]
 
 
 # Hàm trích xuất đặc trưng từ ảnh
@@ -23,13 +37,6 @@ def extract_pose_features(frame):
     # nếu không có kết quả thì trả về landmarks với tất cả các tọa độ bằng 0
     if results is None:
         return [[0, 0, 0] for _ in range(len(n_landmarks))]
-
-    # nếu điểm nào không nhận diện được thì gán tọa độ (0, 0, 0)
-    for i in range(len(results.landmark)):
-        if results.landmark[i].visibility < 0:
-            results.landmark[i].x = 0
-            results.landmark[i].y = 0
-            results.landmark[i].z = 0
 
     # nếu có kết quả thì trích xuất tọa độ các điểm mốc theo tên và lưu vào list
     landmarks = []
@@ -48,6 +55,17 @@ def extract_pose_features(frame):
             z = landmark.z
             landmarks.append([x, y, z])
 
+    # nếu điểm nào có x, y <0 hoặc >1 thì gán bằng -1
+    for i in range(len(landmarks)):
+        if (
+            landmarks[i][0] < 0
+            or landmarks[i][0] > 1
+            or landmarks[i][1] < 0
+            or landmarks[i][1] > 1
+        ):
+            landmarks[i][0] = -1
+            landmarks[i][1] = -1
+
     return landmarks
 
 
@@ -58,12 +76,35 @@ def draw(frame, landmarks):
 
     # vẽ các điểm mốc
     for landmark in landmarks:
-        circle(
-            frame,
-            (int(landmark[0] * frame_width), int(landmark[1] * frame_height)),
-            5,
-            (0, 0, 255),
-            -1,
-        )
+        if landmark[0] != -1 and landmark[1] != -1:
+            circle(
+                frame,
+                (int(landmark[0] * frame_width), int(landmark[1] * frame_height)),
+                5,
+                (0, 0, 255),
+                -1,
+            )
+
+    # vẽ các đường nối theo connections
+    for connection in connections:
+        if (
+            landmarks[connection[0]][0] != -1
+            and landmarks[connection[0]][1] != -1
+            and landmarks[connection[1]][0] != -1
+            and landmarks[connection[1]][1] != -1
+        ):
+            line(
+                frame,
+                (
+                    int(landmarks[connection[0]][0] * frame_width),
+                    int(landmarks[connection[0]][1] * frame_height),
+                ),
+                (
+                    int(landmarks[connection[1]][0] * frame_width),
+                    int(landmarks[connection[1]][1] * frame_height),
+                ),
+                (0, 0, 255),
+                3,
+            )
 
     return frame
