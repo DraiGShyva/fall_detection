@@ -13,7 +13,7 @@ def feature_extraction():
     from cv2 import imshow, waitKey, VideoCapture, destroyAllWindows
     from module.pose_landmarker import extract_pose_features, draw
 
-    cap, df, count = VideoCapture("fall_detection/video/1.mp4"), [], 0
+    cap, df, count = VideoCapture(0), [], 0
     global data_list
 
     while True:
@@ -36,14 +36,14 @@ def feature_extraction():
         #     pass
 
         if len(df) > 30:
-            # Lấy mỗi 28 dòng dữ liệu đầu tiên chuyển thành mảng 1 chiều và thêm vào data_list
+            # Lấy mỗi 30 dòng dữ liệu đầu tiên chuyển thành mảng 1 chiều và thêm vào data_list
             data_list.append([j for i in df[:30] for j in i])
 
             # Tăng biến đếm lên 1
             count += 1
 
-            # Xóa 15 dòng dữ liệu đầu tiên
-            df = df[5:]
+            # Xóa 5 dòng dữ liệu đầu tiên
+            df = df[1:]
 
             # Mỗi 5s thì dự đoán 1 lần
             if count % 30 == 0 and count != 0:
@@ -60,20 +60,16 @@ def feature_extraction():
             cap.release()
             break
 
-    # lưu df thành file csv
-    df = pd.DataFrame(df)
-    df.to_csv("fall_detection/video/data.csv", index=False)
-
 
 def predict():
     global data_list, model
 
-    # Lấy 3 dòng dữ liệu cuối cùng
+    # Lấy 30 dòng dữ liệu cuối cùng
     data = pd.DataFrame(data_list[-30:])
 
-    # Nếu dòng nào có trên 30% các giá trị bằng -1 hoặc bằng 0 thì xóa dòng đó
-    data = data.drop(data[(data == -1).sum(axis=1) > 0.7 * data.shape[1]].index)
-    data = data.drop(data[(data == 0).sum(axis=1) > 0.7 * data.shape[1]].index)
+    # Nếu dòng nào có trên 1/3 các giá trị bằng -1 hoặc bằng 0 thì xóa dòng đó
+    data = data.drop(data[(data == -1).sum(axis=1) > 0.33 * data.shape[1]].index)
+    data = data.drop(data[(data == 0).sum(axis=1) > 0.33 * data.shape[1]].index)
 
     # Nếu data không có dòng nào thì return
     if data.shape[0] == 0:
@@ -86,7 +82,7 @@ def predict():
     # Nếu có 1 trong các dự đoán là ngã thì thông báo
     if 1 in result:
         print("Fall detected")
-        print(result)
+        # print(result)
     else:
         print("No fall detected")
 
