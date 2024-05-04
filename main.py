@@ -7,28 +7,42 @@ model = load(open("fall_detection/model/model.pkl", "rb"))
 
 # Khởi tạo biến toàn cục
 data_list = []
+status = "No fall detected"
 
 
 def feature_extraction():
-    from cv2 import imshow, waitKey, VideoCapture
-    from module.pose_landmarker import extract_pose_features, draw
+    from cv2 import imshow, waitKey, VideoCapture, putText, FONT_HERSHEY_SIMPLEX
+    from module.pose_landmarker import extract_pose_features, draw, mp_pose
 
     cap, df, count = VideoCapture(0), [], 0
-    global data_list
 
     while True:
         # Đọc frame từ webcam
         frame = cap.read()[1]
 
+        # Trích xuất mask
+        segments = mp_pose.process(frame).segmentation_mask  # type: ignore
+
         # Trích xuất các điểm mốc
-        landmarks, segments = extract_pose_features(frame)
+        landmarks = extract_pose_features(frame)
 
         # Nếu có điểm mốc thì vẽ các điểm mốc
         if landmarks is not None:
             frame = draw(frame, landmarks, segments)
 
+            # viết chữ trên góc trái màn hình
+            putText(
+                frame,
+                status,
+                (10, 30),
+                FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 0, 255),
+                2,
+            )
+
             # chuyển landmarks thành mảng 1 chiều và thêm vào df
-            df.append([j for i in landmarks for j in i])
+            df.append([j for i in landmarks for j in i])  # type: ignore
 
         # try:
         #     print(count, len(df), len(data_list))
@@ -62,7 +76,6 @@ def feature_extraction():
 
 
 def predict():
-    global data_list, model
 
     # Lấy 30 dòng dữ liệu cuối cùng
     data = pd.DataFrame(data_list[-30:])
@@ -72,19 +85,21 @@ def predict():
     data = data.drop(data[(data == 0).sum(axis=1) > 0.15 * data.shape[1]].index)
 
     # Nếu data không có dòng nào thì return
-    # if data.shape[0] == 0:
-    #     print("No data")
-    #     return
+    if data.shape[0] == 0:
+        print("No data")
+        return
 
     # Dự đoán
     result = model.predict(data)
 
     # Nếu có 1 trong các dự đoán là ngã thì thông báo
     if 1 in result:
-        print("Fall detected")
+        status = "Fall detected"
+        print(status)
         # print(result)
     else:
-        print("No fall detected")
+        status = "No fall detected"
+        print(status)
 
 
 def main():

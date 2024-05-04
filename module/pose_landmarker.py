@@ -36,7 +36,7 @@ connections = [
 
 
 # Hàm trích xuất đặc trưng từ ảnh
-def extract_pose_features(frame, segment=True):
+def extract_pose_features(frame):
     # chuyển ảnh sang RGB và resize về kích thước 640x480
     frame = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), (640, 480))
 
@@ -67,12 +67,7 @@ def extract_pose_features(frame, segment=True):
             landmarks[i][0] = -1
             landmarks[i][1] = -1
 
-    # nếu segment=True thì trả về (landmarks, segments)
-    if segment:
-        segments = mp_pose.process(frame).segmentation_mask  # type: ignore
-        return landmarks, segments
-    else:
-        return landmarks
+    return landmarks
 
 
 # Hàm vẽ các điểm mốc và các đường nối
@@ -80,8 +75,8 @@ def draw(frame, landmarks, segments):
     # lấy kích thước ảnh
     frame_height, frame_width, _ = frame.shape
 
-    # vẽ segmentation
-    frame[segments == 1] = [0, 0, 0]
+    # vẽ segmentation bằng cách phủ xanh hơn lên ảnh
+    frame[segments == 1] += 100
 
     # vẽ các điểm mốc
     for landmark in landmarks:
