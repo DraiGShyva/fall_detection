@@ -10,7 +10,5 @@ Các nguồn tài liệu tham khảo:
 - https://www.fiddler.ai/model-evaluation-in-model-monitoring/what-is-model-performance-evaluation/
 - https://developers.google.com/mediapipe/
 
-Trong quá trình làm việc có sự giúp đỡ của các công cụ:
-- ChatGPT
-- Github copilot
-- Vscode
+Báo cáo:
+ [Bao-cao-NCKH.pdf](https://github.com/user-attachments/files/17245917/Bao-cao-NCKH.pdf)
